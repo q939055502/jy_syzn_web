@@ -2,6 +2,7 @@
 // 响应拦截器配置
 
 import apiClient from '../apiClient';
+import { useAuthStore } from '../../stores/auth';
 
 // 令牌刷新状态管理
 let isRefreshing = false;
@@ -26,43 +27,11 @@ const notifyRefreshSubscribers = (newToken) => {
 };
 
 /**
- * 刷新令牌
- * @returns {Promise<string>} - 新的访问令牌
+ * 清除认证状态
  */
-const refreshToken = async () => {
-  try {
-    // 从本地存储获取 refresh_token
-    const refreshToken = localStorage.getItem('refreshToken');
-    
-    if (!refreshToken) {
-      throw new Error('缺少刷新令牌');
-    }
-    
-    // 调用刷新令牌 API，发送包含 refresh_token 字段的 JSON 对象
-    const response = await apiClient.post('/auth/refresh', {
-      refresh_token: refreshToken
-    }, {
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    });
-    
-    if (response.code === 200 && response.data.access_token && response.data.refresh_token) {
-      // 刷新成功，更新本地存储的 token 和 refresh_token（令牌轮转）
-      localStorage.setItem('token', response.data.access_token);
-      localStorage.setItem('refreshToken', response.data.refresh_token);
-      
-      // 刷新成功，返回新令牌
-      return response.data.access_token;
-    } else {
-      throw new Error(response.message || '刷新令牌失败');
-    }
-  } catch (error) {
-    // 刷新失败，清除本地存储的令牌
-    localStorage.removeItem('token');
-    localStorage.removeItem('refreshToken');
-    throw error;
-  }
+const clearAuthState = () => {
+  const authStore = useAuthStore();
+  authStore.clearAuthState();
 };
 
 /**
@@ -72,7 +41,6 @@ const refreshToken = async () => {
  */
 export const responseInterceptor = (response) => {
   // 直接返回后端原始数据，让 service 层处理
-  console.log('正确响应拦截器:', response);
   return response.data;
 };
 
@@ -83,7 +51,6 @@ export const responseInterceptor = (response) => {
  */
 export const responseInterceptorError = async (error) => {
   // 开发环境下打印错误日志，便于调试
-  console.log('错误响应拦截器:', error);
   if (import.meta.env.DEV) {
     console.error('API请求失败:', {
       url: error.config?.url,
@@ -109,30 +76,39 @@ export const responseInterceptorError = async (error) => {
         
         try {
           // 刷新令牌
-          const newToken = await refreshToken();
+          const authStore = useAuthStore();
+          const success = await authStore.refreshToken();
           
-          // 更新 apiClient 默认请求头
-          apiClient.defaults.headers['Authorization'] = `Bearer ${newToken}`;
-          
-          // 重新设置原始请求的 Authorization 头
-          originalRequest.headers['Authorization'] = `Bearer ${newToken}`;
-          
-          // 通知所有等待的请求，令牌已刷新
-          notifyRefreshSubscribers(newToken);
-          
-          // 重置刷新状态
-          isRefreshing = false;
-          
-          // 重新发送当前请求
-          return apiClient(originalRequest);
+          if (success) {
+            // 刷新成功，获取新令牌
+            const newToken = authStore.token;
+            
+            // 更新 apiClient 默认请求头
+            apiClient.defaults.headers['Authorization'] = `Bearer ${newToken}`;
+            
+            // 重新设置原始请求的 Authorization 头
+            originalRequest.headers['Authorization'] = `Bearer ${newToken}`;
+            
+            // 通知所有等待的请求，令牌已刷新
+            notifyRefreshSubscribers(newToken);
+            
+            // 重置刷新状态
+            isRefreshing = false;
+            
+            // 重新发送当前请求
+            return apiClient(originalRequest);
+          } else {
+            throw new Error('刷新令牌失败');
+          }
         } catch (refreshError) {
           // 刷新失败，重置状态
           isRefreshing = false;
           // 通知所有等待的请求，刷新失败
           notifyRefreshSubscribers(null);
-          // 刷新失败，清除本地存储的令牌
-          localStorage.removeItem('token');
-          localStorage.removeItem('refreshToken');
+          // 清除认证状态
+          clearAuthState();
+          // 终止后续错误处理
+          return Promise.reject(refreshError);
         }
       } else {
         // 正在刷新令牌，将当前请求添加到等待队列
@@ -150,9 +126,10 @@ export const responseInterceptorError = async (error) => {
         });
       }
     } else {
-      // 刷新令牌的请求失败，清除本地存储的令牌
-      localStorage.removeItem('token');
-      localStorage.removeItem('refreshToken');
+      // 刷新令牌的请求失败，清除认证状态
+      clearAuthState();
+      // 终止后续错误处理
+      return Promise.reject(error);
     }
   }
   

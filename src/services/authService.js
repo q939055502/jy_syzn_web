@@ -6,113 +6,150 @@ import * as userApi from '../api/user';
 // 用户认证服务
 export const authService = {
   /**
+   * 处理 API 响应
+   * @param {Object} response - API 响应
+   * @param {string} successMessage - 成功消息
+   * @param {string} errorMessage - 错误消息
+   * @returns {Object} - 标准化的响应结果
+   */
+  handleResponse(response, successMessage = '操作成功', errorMessage = '操作失败') {
+    console.log('处理响应:', response);
+    
+    // 统一格式响应：包含 code 字段
+    if (response && typeof response === 'object' && 'code' in response) {
+      if (response.code === 200) {
+        // 检查是否是登录响应，包含 access_token
+        if (response.data && response.data.access_token) {
+          return {
+            success: true,
+            data: {
+              token: response.data.access_token,
+              tokenType: response.data.token_type,
+              refreshToken: response.data.refresh_token,
+              user: response.data.user
+            },
+            message: response.message || successMessage
+          };
+        }
+        return {
+          success: true,
+          data: response.data || response,
+          message: response.message || successMessage
+        };
+      } else {
+        return {
+          success: false,
+          message: response.message || errorMessage
+        };
+      }
+    }
+    
+    // 直接返回 access_token 的响应格式（旧格式，用于兼容）
+    if (response && typeof response === 'object' && response.access_token) {
+      return {
+        success: true,
+        data: {
+          token: response.access_token,
+          tokenType: response.token_type,
+          refreshToken: response.refresh_token,
+          user: response.user
+        },
+        message: response.message || successMessage
+      };
+    }
+    
+    // 其他成功响应
+    if (response && typeof response === 'object') {
+      return {
+        success: true,
+        data: response,
+        message: successMessage
+      };
+    }
+    
+    // 响应格式错误
+    console.error('响应格式错误:', response);
+    return {
+      success: false,
+      message: '响应格式错误'
+    };
+  },
+
+  /**
+   * 处理错误
+   * @param {Error} error - 错误对象
+   * @param {string} defaultMessage - 默认错误消息
+   * @returns {Object} - 标准化的错误结果
+   */
+  handleError(error, defaultMessage = '操作失败，请稍后重试') {
+    console.error('请求失败:', error);
+    
+    // 从错误对象中提取详细的错误信息
+    let errorMessage = defaultMessage;
+    
+    // 检查是否是响应拦截器抛出的错误
+    if (error.response && error.response.data) {
+      const responseData = error.response.data;
+      if (responseData.message) {
+        errorMessage = responseData.message;
+      } else if (responseData.detail) {
+        errorMessage = responseData.detail;
+      } else if (responseData.error) {
+        errorMessage = responseData.error;
+      } else if (typeof responseData === 'string') {
+        errorMessage = responseData;
+      }
+    }
+    // 检查是否是包含 data 属性的错误
+    else if (error.data) {
+      const errorData = error.data;
+      if (errorData.message) {
+        errorMessage = errorData.message;
+      } else if (errorData.detail) {
+        errorMessage = errorData.detail;
+      } else if (errorData.error) {
+        errorMessage = errorData.error;
+      }
+    }
+    // 使用错误对象的 message 属性
+    else if (error.message) {
+      errorMessage = error.message;
+    }
+    
+    return {
+      success: false,
+      message: errorMessage
+    };
+  },
+
+  /**
    * 登录
    * @param {Object} loginForm - 登录表单数据
    * @returns {Promise<Object>} - 登录结果
    */
   async login(loginForm) {
     try {
-      // 调用 API 层的登录方法
       const response = await userApi.login(loginForm);
-      if (response.code === 200) {
-        // 登录成功，返回标准化结果
-        return {
-          success: true,
-          data: {
-            token: response.data.access_token,
-            tokenType: response.data.token_type,
-            refreshToken: response.data.refresh_token,
-            user: response.data.user
-          },
-          message: response.message
-        };
-      } else {
-        // 登录失败，返回错误信息
-        console.error('登录失败:', response);
-        return {
-          success: false,
-          message: response.message || '登录失败，请稍后重试'
-        };
-      }
+      console.log('登录响应:', response);
+      const result = this.handleResponse(response, '登录成功', '登录失败，请稍后重试');
+      console.log('处理后的登录结果:', result);
+      return result;
     } catch (error) {
-      // 处理错误，返回错误信息
-      
-      console.error('登录请求失败:', error);
-      console.log('错误详情:', error);
-      
-      // 从错误对象中提取详细的错误信息
-      let errorMessage = '登录失败，请稍后重试';
-      
-      // 检查是否是响应拦截器抛出的错误
-      if (error.response && error.response.data) {
-        const responseData = error.response.data;
-        if (responseData.message) {
-          errorMessage = responseData.message;
-        } else if (responseData.detail) {
-          errorMessage = responseData.detail;
-        } else if (responseData.error) {
-          errorMessage = responseData.error;
-        }
-      }
-      // 检查是否是包含 data 属性的错误
-      else if (error.data) {
-        const errorData = error.data;
-        if (errorData.message) {
-          errorMessage = errorData.message;
-        } else if (errorData.detail) {
-          errorMessage = errorData.detail;
-        } else if (errorData.error) {
-          errorMessage = errorData.error;
-        }
-      }
-      // 使用错误对象的 message 属性
-      else if (error.message) {
-        errorMessage = error.message;
-      }
-      
-      return {
-        success: false,
-        message: errorMessage
-      };
+      console.error('登录错误:', error);
+      return this.handleError(error, '登录失败，请稍后重试');
     }
   },
 
   /**
    * 刷新令牌
-   * @param {string} refreshToken - 刷新令牌
    * @returns {Promise<Object>} - 刷新结果
    */
-  async refreshToken(refreshToken) {
+  async refreshToken() {
     try {
-      // 调用 API 层的刷新令牌方法
-      const response = await userApi.refreshToken(refreshToken);
-      
-      if (response.code === 200) {
-        // 刷新成功，返回标准化结果，包含新的refreshToken（令牌轮转）
-        return {
-          success: true,
-          data: {
-            token: response.data.access_token,
-            tokenType: response.data.token_type,
-            refreshToken: response.data.refresh_token
-          },
-          message: response.message
-        };
-      } else {
-        // 刷新失败，返回错误信息
-        console.error('刷新令牌失败:', response);
-        return {
-          success: false,
-          message: response.message || '刷新令牌失败，请重新登录'
-        };
-      }
+      const response = await userApi.refreshToken();
+      return this.handleResponse(response, '令牌刷新成功', '刷新令牌失败，请重新登录');
     } catch (error) {
-      // 处理错误，返回错误信息
-      console.error('刷新令牌请求失败:', error);
-      return {
-        success: false,
-        message: error.message || '刷新令牌失败，请重新登录'
-      };
+      return this.handleError(error, '刷新令牌失败，请重新登录');
     }
   },
 
@@ -122,39 +159,10 @@ export const authService = {
    */
   async getUserInfo() {
     try {
-      // 调用 API 层的获取用户信息方法
       const response = await userApi.getUserInfo();
-      
-      // 检查是否是统一格式响应
-      if (response && typeof response === 'object' && 'code' in response) {
-        // 统一格式响应
-        if (response.code === 200) {
-          return {
-            success: true,
-            data: response.data,
-            message: response.message
-          };
-        } else {
-          return {
-            success: false,
-            message: response.message || '获取用户信息失败'
-          };
-        }
-      } else {
-        // 非统一格式响应
-        console.error('获取用户信息失败: 响应格式错误', response);
-        return {
-          success: false,
-          message: '获取用户信息失败，响应格式错误'
-        };
-      }
+      return this.handleResponse(response, '获取用户信息成功', '获取用户信息失败');
     } catch (error) {
-      // 处理错误，返回错误信息
-      console.error('获取用户信息失败:', error);
-      return {
-        success: false,
-        message: error.message || '获取用户信息失败，请稍后重试'
-      };
+      return this.handleError(error, '获取用户信息失败，请稍后重试');
     }
   },
 
@@ -164,49 +172,10 @@ export const authService = {
    */
   async logout() {
     try {
-      // 调用 API 层的登出方法
       const response = await userApi.logout();
-      
-      // 检查是否是统一格式响应
-      if (response && typeof response === 'object' && 'code' in response) {
-        // 统一格式响应
-        return {
-          success: response.code === 200,
-          message: response.message || (response.code === 200 ? '登出成功' : '登出失败')
-        };
-      } else {
-        // 非统一格式响应
-        console.error('登出失败: 响应格式错误', response);
-        return {
-          success: false,
-          message: '登出失败，响应格式错误'
-        };
-      }
+      return this.handleResponse(response, '登出成功', '登出失败');
     } catch (error) {
-      // 处理错误，返回错误信息
-      console.error('登出失败:', error);
-      return {
-        success: false,
-        message: error.message || '登出失败，请稍后重试'
-      };
-    }
-  },
-
-  /**
-   * 检查登录状态
-   * @returns {Promise<boolean>} - 登录状态
-   */
-  async checkLoginStatus() {
-    try {
-      // 调用 API 层的检查登录状态方法
-      const isLoggedIn = await userApi.checkLoginStatus();
-      
-      // 返回登录状态
-      return isLoggedIn;
-    } catch (error) {
-      // 处理错误，返回 false
-      console.error('检查登录状态失败:', error);
-      return false;
+      return this.handleError(error, '登出失败，请稍后重试');
     }
   }
 };

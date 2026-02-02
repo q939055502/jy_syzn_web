@@ -15,11 +15,9 @@ export const login = (params) => {
 };
 
 // 刷新令牌 API
-export const refreshToken = (refreshToken) => {
-  // 发送包含 refresh_token 字段的 JSON 对象
-  return apiClient.post('/auth/refresh', {
-    refresh_token: refreshToken
-  });
+export const refreshToken = () => {
+  // 发送空对象，refresh_token 由后端从 Cookie 中获取
+  return apiClient.post('/auth/refresh', {});
 };
 
 // 获取用户信息 API
@@ -30,14 +28,5 @@ export const getUserInfo = () => {
 // 登出 API
 export const logout = () => {
   return apiClient.post('/auth/logout');
-};
-
-// 检查登录状态 API
-export const checkLoginStatus = () => {
-  // 从本地存储获取 token
-  const token = localStorage.getItem('token');
-  return new Promise((resolve) => {
-    resolve(!!token);
-  });
 };
 

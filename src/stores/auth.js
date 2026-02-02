@@ -3,6 +3,7 @@
 
 import { defineStore } from 'pinia';
 import { authService } from '../services/authService';
+import { getTokenRemainingTime } from '../utils/jwt';
 
 // 定义用户认证状态存储
 export const useAuthStore = defineStore('auth', {
@@ -10,19 +11,18 @@ export const useAuthStore = defineStore('auth', {
   state: () => ({
     // 用户信息
     userInfo: null,
-    // 登录状态：根据 token 是否存在来判断登录状态
-    isLoggedIn: !!localStorage.getItem('token'),
+    // 登录状态
+    isLoggedIn: false,
     // 加载状态
     isLoading: false,
     // 错误信息
     error: null,
     // token
-    token: localStorage.getItem('token') || '',
-    // refreshToken
-    refreshToken: localStorage.getItem('refreshToken') || ''
+    token: '',
+    // 令牌刷新定时器
+    refreshTimer: null
   }),
   
-
   // 计算属性（getters）
   getters: {
     /**
@@ -53,13 +53,7 @@ export const useAuthStore = defineStore('auth', {
      * 获取 token
      * @returns {string} - token
      */
-    getToken: (state) => state.token,
-    
-    /**
-     * 获取 refreshToken
-     * @returns {string} - refreshToken
-     */
-    getRefreshToken: (state) => state.refreshToken
+    getToken: (state) => state.token
   },
 
   // 动作（actions）
@@ -70,139 +64,86 @@ export const useAuthStore = defineStore('auth', {
      * @returns {Promise<boolean>} - 登录结果
      */
     async login(loginForm) {
-    // 设置加载状态
-    this.isLoading = true;
-    // 清除错误信息
-    this.error = null;
-
-    try {
-      // 调用 Service 层的登录方法
-      const result = await authService.login(loginForm);
-
-      if (result.success) {
-        // 登录成功，保存 token 和 refreshToken
-        const token = result.data.token;
-        const refreshToken = result.data.refreshToken;
-        
-        this.token = token;
-        this.refreshToken = refreshToken;
-        
-        // 将 token 和 refreshToken 保存到本地存储
-        localStorage.setItem('token', token);
-        localStorage.setItem('refreshToken', refreshToken);
-        
-        // 直接使用后端返回的用户信息，无需额外请求
-        this.userInfo = result.data.user;
-        this.isLoggedIn = true;
-        
-        return true;
-      } else {
-        // 登录失败，更新错误信息
-        this.error = result.message;
-        return false;
-      }
-    } catch (error) {
-      // 处理异常，更新错误信息
-      console.error('登录请求失败:', error.message);
-      this.error = error.message || '登录失败，请稍后重试';
-      return false;
-    } finally {
-      // 重置加载状态
-      this.isLoading = false;
-    }
-  },
-
-    /**
-     * 刷新令牌
-     * @returns {Promise<boolean>} - 刷新结果
-     */
-    async refreshToken() {
-      // 设置加载状态
       this.isLoading = true;
-      // 清除错误信息
       this.error = null;
 
       try {
-        // 调用 Service 层的刷新令牌方法
-        const result = await authService.refreshToken(this.refreshToken);
+        // 调用 Service 层的登录方法
+        const result = await authService.login(loginForm);
 
         if (result.success) {
-          // 刷新成功，更新 token 和 refreshToken（实现令牌轮转）
-          const token = result.data.token;
-          const refreshToken = result.data.refreshToken;
+          // 登录成功，保存 token
+          this.token = result.data.token;
+          this.isLoggedIn = true;
           
-          this.token = token;
-          this.refreshToken = refreshToken;
+          console.log('登录成功，令牌已保存:', this.token);
           
-          // 将 token 和 refreshToken 保存到本地存储（令牌轮转）
-          localStorage.setItem('token', token);
-          localStorage.setItem('refreshToken', refreshToken);
+          // 自动获取用户信息
+          console.log('开始获取用户信息...');
+          await this.fetchUserInfo();
+          
+          // 设置令牌刷新定时器
+          this.setRefreshTimer();
           
           return true;
         } else {
-          // 刷新失败，清除本地状态
-          this.userInfo = null;
-          this.token = '';
-          this.refreshToken = '';
-          this.isLoggedIn = false;
-          
-          // 清除本地存储中的 token 和 refreshToken
-          localStorage.removeItem('token');
-          localStorage.removeItem('refreshToken');
-          
+          // 登录失败，更新错误信息
+          this.error = result.message;
           return false;
         }
       } catch (error) {
-        // 处理异常，清除本地状态
-        console.error('刷新令牌失败:', error.message);
-        this.userInfo = null;
-        this.token = '';
-        this.refreshToken = '';
-        this.isLoggedIn = false;
-        
-        // 清除本地存储中的 token 和 refreshToken
-        localStorage.removeItem('token');
-        localStorage.removeItem('refreshToken');
-        
+        // 处理异常，更新错误信息
+        console.error('登录请求失败:', error.message);
+        this.error = error.message || '登录失败，请稍后重试';
         return false;
       } finally {
-        // 重置加载状态
         this.isLoading = false;
       }
     },
 
     /**
      * 获取用户信息
-     * @returns {Promise<Object|null>} - 用户信息
+     * @returns {Promise<boolean>} - 获取结果
      */
     async fetchUserInfo() {
-      // 设置加载状态
-      this.isLoading = true;
-      // 清除错误信息
-      this.error = null;
+      try {
+        const result = await authService.getUserInfo();
+        if (result.success) {
+          this.userInfo = result.data;
+          return true;
+        }
+        return false;
+      } catch (error) {
+        console.error('获取用户信息失败:', error.message);
+        return false;
+      }
+    },
+
+    /**
+     * 刷新令牌
+     * @returns {Promise<boolean>} - 刷新结果
+     */
+    async refreshToken() {
+      if (!this.token) return false;
 
       try {
-        // 调用 Service 层的获取用户信息方法
-        const result = await authService.getUserInfo();
+        // 调用 Service 层的刷新令牌方法
+        const result = await authService.refreshToken();
 
         if (result.success) {
-          // 获取成功，更新状态
-          this.userInfo = result.data;
-          this.isLoggedIn = true;
-          
-          return result.data;
+          // 刷新成功，更新 token
+          this.token = result.data.token;
+          return true;
         } else {
-          // 获取失败，更新错误信息
-          this.error = result.message;
-          return null;
+          // 刷新失败，清除本地状态
+          this.clearAuthState();
+          return false;
         }
       } catch (error) {
-        // 处理异常，更新错误信息
-        this.error = error.message || '获取用户信息失败，请稍后重试';
-        return null;
-      } finally {
-        // 重置加载状态
-        this.isLoading = false;
+        // 处理异常，清除本地状态
+        console.error('刷新令牌失败:', error.message);
+        this.clearAuthState();
+        return false;
       }
     },
 
@@ -211,66 +152,79 @@ export const useAuthStore = defineStore('auth', {
      * @returns {Promise<boolean>} - 登出结果
      */
     async logout() {
-      // 设置加载状态
       this.isLoading = true;
-      // 清除错误信息
       this.error = null;
 
       try {
         // 调用 Service 层的登出方法
-        const result = await authService.logout();
-
-        // 无论登出请求是否成功，都清除本地状态
-        this.userInfo = null;
-        this.token = '';
-        this.refreshToken = '';
-        this.isLoggedIn = false;
-        
-        // 清除本地存储中的 token 和 refreshToken
-        localStorage.removeItem('token');
-        localStorage.removeItem('refreshToken');
-        
-        return result.success;
+        await authService.logout();
       } catch (error) {
         // 处理异常，更新错误信息
+        console.error('登出失败:', error.message);
         this.error = error.message || '登出失败，请稍后重试';
-        return false;
       } finally {
-        // 重置加载状态
+        // 无论登出请求是否成功，都清除本地状态
+        this.clearAuthState();
         this.isLoading = false;
+      }
+      
+      return true;
+    },
+
+    /**
+     * 清除认证状态
+     */
+    clearAuthState() {
+      this.userInfo = null;
+      this.token = '';
+      this.isLoggedIn = false;
+      this.clearRefreshTimer();
+    },
+
+    /**
+     * 清除令牌刷新定时器
+     */
+    clearRefreshTimer() {
+      if (this.refreshTimer) {
+        clearTimeout(this.refreshTimer);
+        this.refreshTimer = null;
       }
     },
 
     /**
-     * 检查登录状态
-     * @returns {Promise<boolean>} - 登录状态
+     * 设置令牌刷新定时器
+     * @param {number} threshold - 提前刷新阈值（秒），默认 180 秒
      */
-    async checkLoginStatus() {
-      // 如果已有 token，直接返回登录状态
-      if (this.token) {
-        return this.isLoggedIn;
+    setRefreshTimer(threshold = 180) {
+      // 清除现有的定时器
+      this.clearRefreshTimer();
+      
+      // 如果没有令牌，不设置定时器
+      if (!this.token) return;
+      
+      // 计算令牌剩余过期时间
+      const remainingTime = getTokenRemainingTime(this.token);
+      if (remainingTime === null) {
+        // 解析失败，按过期处理
+        this.clearAuthState();
+        return;
       }
-
-      // 设置加载状态
-      this.isLoading = true;
-      // 清除错误信息
-      this.error = null;
-
-      try {
-        // 调用 Service 层的检查登录状态方法
-        const isLoggedIn = await authService.checkLoginStatus();
-        
-        // 更新登录状态
-        this.isLoggedIn = isLoggedIn;
-        
-        return isLoggedIn;
-      } catch (error) {
-        // 处理异常，更新错误信息
-        this.error = error.message || '检查登录状态失败，请稍后重试';
-        return false;
-      } finally {
-        // 重置加载状态
-        this.isLoading = false;
+      
+      // 计算需要提前多久刷新
+      const refreshTime = remainingTime - threshold;
+      
+      if (refreshTime > 0) {
+        // 设置定时器，在令牌即将过期时自动刷新
+        this.refreshTimer = setTimeout(async () => {
+          const success = await this.refreshToken();
+          // 刷新成功后，重新设置定时器
+          if (success && this.token) {
+            this.setRefreshTimer(threshold);
+          }
+        }, refreshTime * 1000);
+      } else {
+        // 令牌已经快过期，立即刷新
+        this.refreshToken();
       }
     },
 

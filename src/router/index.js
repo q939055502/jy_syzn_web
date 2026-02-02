@@ -108,8 +108,9 @@ const router = createRouter({
 
 // 添加导航守卫，确保只有登录用户才能访问受保护的路由
 router.beforeEach(async (to, from, next) => {
-  // 直接从本地存储获取token，避免在Pinia未初始化时使用useAuthStore
-  const token = localStorage.getItem('token')
+  // 从 Pinia 获取 token
+  const authStore = useAuthStore()
+  const token = authStore.token
   
   // 检查路由是否需要验证
   const requiresAuth = to.matched.some(record => record.meta.requiresAuth !== false)
@@ -126,8 +127,22 @@ router.beforeEach(async (to, from, next) => {
     return
   }
   
-  // 如果需要验证但未登录，跳转到登录页面
-  if (!token) {
+  // 如果需要验证但未登录
+  if (!token && !authStore.isLoggedIn) {
+    // 尝试刷新令牌
+    try {
+      const refreshSuccess = await authStore.refreshToken()
+      if (refreshSuccess && authStore.token) {
+        // 刷新成功，设置令牌刷新定时器
+        authStore.setRefreshTimer()
+        // 放行
+        next()
+        return
+      }
+    } catch (error) {
+      console.error('路由守卫刷新令牌失败:', error)
+    }
+    // 刷新失败，跳转到登录页面
     next({ name: 'login' })
     return
   }
