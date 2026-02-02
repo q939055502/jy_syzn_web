@@ -138,6 +138,18 @@ export const delegationFormTemplateService = {
    * @returns {Promise<Object>} - 创建结果
    */
   async createDelegationFormTemplate(templateData) {
+    // 正确打印 FormData 对象的内容
+  console.log('templateData type:', typeof templateData);
+  console.log('templateData is FormData:', templateData instanceof FormData);
+  
+  if (templateData instanceof FormData) {
+    console.log('FormData entries:');
+    for (let [key, value] of templateData.entries()) {
+      console.log(`${key}: ${value}`);
+    }
+  } else {
+    console.log('templateData:', templateData);
+  }
     try {
       // 调用 API 层的创建委托单模板方法
       const response = await delegationFormTemplateApi.createDelegationFormTemplate(templateData);

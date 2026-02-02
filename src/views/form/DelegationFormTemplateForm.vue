@@ -56,10 +56,10 @@
           />
         </el-form-item>
 
-        <el-form-item label="版本编号" prop="template_code">
+        <el-form-item label="模板编号" prop="template_code">
           <el-input
             v-model="form.template_code"
-            placeholder="请输入版本编号"
+            placeholder="请输入模板编号"
           />
         </el-form-item>
 
@@ -235,7 +235,7 @@ const rules = computed(() => ({
     { min: 1, max: 100, message: '长度在 1 到 100 个字符', trigger: 'blur' }
   ],
   template_code: [
-    { required: true, message: '请输入版本编号', trigger: 'blur' },
+    { required: true, message: '请输入模板编号', trigger: 'blur' },
     { min: 1, max: 20, message: '长度在 1 到 20 个字符', trigger: 'blur' }
   ],
   file: [

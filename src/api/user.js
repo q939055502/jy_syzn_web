@@ -11,11 +11,7 @@ export const login = (params) => {
   formData.append('username', params.username);
   formData.append('password', params.password);
   
-  return apiClient.post('/auth/token', formData, {
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded'
-    }
-  });
+  return apiClient.post('/auth/token', formData);
 };
 
 // 刷新令牌 API
@@ -23,10 +19,6 @@ export const refreshToken = (refreshToken) => {
   // 发送包含 refresh_token 字段的 JSON 对象
   return apiClient.post('/auth/refresh', {
     refresh_token: refreshToken
-  }, {
-    headers: {
-      'Content-Type': 'application/json'
-    }
   });
 };
 

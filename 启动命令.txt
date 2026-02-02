@@ -1,0 +1,1 @@
+cd /opt/jy_syzn_web && /usr/bin/node node_modules/vite/bin/vite.js

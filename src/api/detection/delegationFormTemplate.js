@@ -24,20 +24,24 @@ export const getDelegationFormTemplate = (templateId) => {
 
 // 创建委托单模板 API
 export const createDelegationFormTemplate = (templateData) => {
-  return apiClient.post(`/detection/templates`, templateData, {
+  // 根据 templateData 类型设置正确的 Content-Type
+  const config = templateData instanceof FormData ? {
     headers: {
       'Content-Type': 'multipart/form-data'
     }
-  });
+  } : {};
+  return apiClient.post(`/detection/templates`, templateData, config);
 };
 
 // 更新委托单模板 API
 export const updateDelegationFormTemplate = (templateId, templateData) => {
-  return apiClient.put(`/detection/templates/${templateId}`, templateData, {
+  // 根据 templateData 类型设置正确的 Content-Type
+  const config = templateData instanceof FormData ? {
     headers: {
       'Content-Type': 'multipart/form-data'
     }
-  });
+  } : {};
+  return apiClient.put(`/detection/templates/${templateId}`, templateData, config);
 };
 
 // 删除委托单模板 API

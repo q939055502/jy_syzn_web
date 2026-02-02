@@ -10,8 +10,10 @@
             type="text" 
             class="search-input"
             placeholder="检测对象/参数/规范名称/代码"
+            v-model="searchKeyword"
+            @keyup.enter="handleSearch"
           />
-          <button class="search-btn">搜索</button>
+          <button class="search-btn" @click="handleSearch">搜索</button>
         </div>
       </div>
     </div>
@@ -35,7 +37,7 @@
     
     <div class="guide-container">
       <!-- 左侧检测对象列表容器 -->
-      <div class="sidebar-wrapper" v-if="isSidebarVisible">
+      <div class="sidebar-wrapper" v-if="isSidebarVisible && !isSearchMode">
         <!-- 使用Sidebar组件 -->
         <Sidebar
           :categories="categories"
@@ -50,35 +52,74 @@
         />
       </div>
       
-      <!-- 右侧检测项目卡片 -->
+      <!-- 右侧内容区域 -->
       <div class="content">
-        <!-- 移除content-header，不再显示"请选择检测对象" -->
-        
-        <div class="item-grid" v-if="selectedObjectId">
-          <div
-            v-for="item in filteredItems"
-            :key="item.item_id"
-            class="item-card"
-          >
-            <div class="card-header" @click="handleItemClick(item)">
-              <h4>{{ item.item_name }}</h4>
+        <!-- 搜索结果显示 -->
+        <div v-if="isSearchMode" class="search-results">
+          <div class="search-results-header">
+            <h3>搜索结果 ({{ searchResults.length }})</h3>
+            <button class="back-btn" @click="isSearchMode = false">返回</button>
+          </div>
+          <div class="search-results-grid">
+            <div
+              v-for="item in searchResults"
+              :key="item.item_id"
+              class="item-card"
+              @click="handleSearchResultClick(item)"
+            >
+              <div class="card-header">
+                <h4>{{ item.item_name }}</h4>
+              </div>
+              <div class="card-image">
+                <img 
+                  :src="getItemPreviewImage(item)" 
+                  :alt="item.item_name" 
+                  class="preview-img"
+                  @load="handlePreviewImageLoad"
+                  @error="handlePreviewImageError"
+                />
+              </div>
             </div>
-            <div class="card-image" @click="handleItemClick(item)">
-              <img 
-                :src="getItemPreviewImage(item)" 
-                :alt="item.item_name" 
-                class="preview-img"
-                @load="handlePreviewImageLoad"
-                @error="handlePreviewImageError"
-              />
-            </div>
+          </div>
+          <div v-if="searchResults.length === 0 && !isSearching" class="empty-state">
+            <el-icon class="empty-icon"><Search /></el-icon>
+            <p>未找到匹配的检测项目</p>
+          </div>
+          <div v-if="isSearching" class="loading-state">
+            <el-icon class="loading-icon"><Loading /></el-icon>
+            <p>搜索中...</p>
           </div>
         </div>
         
-        <div v-else class="empty-state">
-          <el-icon class="empty-icon"><Document /></el-icon>
-          <p>请从左侧选择检测对象查看检测项目</p>
-        </div>
+        <!-- 正常检测项目显示 -->
+        <template v-else>
+          <div class="item-grid" v-if="selectedObjectId">
+            <div
+              v-for="item in filteredItems"
+              :key="item.item_id"
+              class="item-card"
+              @click="handleItemClick(item)"
+            >
+              <div class="card-header">
+                <h4>{{ item.item_name }}</h4>
+              </div>
+              <div class="card-image">
+                <img 
+                  :src="getItemPreviewImage(item)" 
+                  :alt="item.item_name" 
+                  class="preview-img"
+                  @load="handlePreviewImageLoad"
+                  @error="handlePreviewImageError"
+                />
+              </div>
+            </div>
+          </div>
+          
+          <div v-else class="empty-state">
+            <el-icon class="empty-icon"><Document /></el-icon>
+            <p>请从左侧选择检测对象查看检测项目</p>
+          </div>
+        </template>
       </div>
     </div>
     
@@ -147,6 +188,12 @@ const isImageLoading = ref(false);
 const currentItemId = ref('');
 // 当前委托单模板列表
 const currentTemplates = ref([]);
+
+// 搜索相关
+const searchKeyword = ref('');
+const searchResults = ref([]);
+const isSearching = ref(false);
+const isSearchMode = ref(false);
 
 // 组件挂载时获取分类及其检测对象和检测项目列表
 onMounted(async () => {
@@ -344,6 +391,86 @@ const handlePreviewImageError = (event) => {
   event.target.style.display = 'none';
 };
 
+// 处理搜索
+const handleSearch = async () => {
+  if (!searchKeyword.value.trim()) {
+    // 如果搜索关键词为空，退出搜索模式，返回正常视图
+    isSearchMode.value = false;
+    return;
+  }
+  
+  isSearching.value = true;
+  try {
+    // 使用公开接口进行搜索
+    const response = await fetch(`/api/public/detection/items/search?keyword=${encodeURIComponent(searchKeyword.value)}`);
+    const data = await response.json();
+    
+    if (data.code === 200) {
+      searchResults.value = data.data;
+      isSearchMode.value = true;
+    } else {
+      ElMessage.error('搜索失败：' + data.message);
+      searchResults.value = [];
+      isSearchMode.value = false;
+    }
+  } catch (error) {
+    console.error('搜索请求失败:', error);
+    ElMessage.error('搜索请求失败，请稍后重试');
+    searchResults.value = [];
+    isSearchMode.value = false;
+  } finally {
+    isSearching.value = false;
+  }
+};
+
+// 处理搜索结果项点击
+const handleSearchResultClick = async (item) => {
+  // 设置当前检测项目ID
+  currentItemId.value = item.item_id;
+  // 设置图片标题
+  currentImageTitle.value = item.item_name;
+  // 显示图片加载状态
+  isImageLoading.value = true;
+  // 打开图片弹窗
+  imageDialogVisible.value = true;
+  
+  try {
+    // 获取当前设备类型
+    const deviceType = getDeviceType();
+    // 构建图片URL，使用当前设备类型和SVG格式
+    const dataUniqueId = `detection:${item.item_id}`;
+    const imageUrl = `/api/image/${dataUniqueId}?device_type=${deviceType}&image_type=svg`;
+    
+    // 使用fetch获取图片数据，接受SVG格式
+    const response = await fetch(imageUrl, {
+      method: 'GET',
+      headers: {
+        'Accept': 'image/svg+xml'
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    // 将图片数据转换为Blob
+    const blob = await response.blob();
+    // 创建Blob URL
+    const blobUrl = URL.createObjectURL(blob);
+    
+    // 设置图片URL
+    currentImageUrl.value = blobUrl;
+    
+    // 获取委托单模板列表
+    await fetchTemplates(item.item_id);
+  } catch (error) {
+    console.error('获取图片失败:', error);
+    ElMessage.error('图片加载失败，请稍后重试');
+  } finally {
+    // 隐藏加载状态
+    isImageLoading.value = false;
+  }
+};
 
 </script>
 
@@ -804,6 +931,100 @@ const handlePreviewImageError = (event) => {
   font-size: 64px;
   margin-bottom: 16px;
   color: var(--text-tertiary);
+}
+
+/* 搜索结果相关样式 */
+.search-results {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+}
+
+.search-results-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.search-results-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.back-btn {
+  height: 28px;
+  padding: 0 16px;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  background-color: #f5f7fa;
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.back-btn:hover {
+  background-color: #e4e7ed;
+  border-color: #c0c4cc;
+}
+
+.search-results-grid {
+  flex: 1;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* 平板设备适配 */
+@media (max-width: 1024px) and (min-width: 769px) {
+  .search-results-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    padding: 12px;
+  }
+}
+
+/* 移动设备适配 */
+@media (max-width: 768px) {
+  .search-results-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 12px;
+  }
+}
+
+/* 加载状态 */
+.loading-state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  color: var(--text-tertiary);
+}
+
+.loading-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  color: var(--color-primary);
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 
