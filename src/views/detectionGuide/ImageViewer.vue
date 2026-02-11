@@ -1,7 +1,11 @@
 <template>
   <div v-if="visible" class="image-viewer-overlay" @click="handleOverlayClick">
     <!-- 图片查看器容器 -->
-    <div class="image-viewer-container" @click.stop>
+    <div 
+      class="image-viewer-container" 
+      :class="{ 'landscape-container': needLandscapeDisplay }"
+      @click.stop
+    >
       <!-- 头部工具栏 -->
       <div class="viewer-header">
         <!-- 第一列：标题区域 -->
@@ -92,8 +96,12 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted, onUnmounted } from 'vue';
+import { ref, watch, onMounted, onUnmounted, computed } from 'vue';
 import { Close, Loading, Picture } from '@element-plus/icons-vue';
+import { useDeviceType } from './composables/useDeviceType';
+
+// 导入样式文件
+import './styles/imageViewer.css';
 
 // 组件属性
 const props = defineProps({
@@ -122,11 +130,22 @@ const props = defineProps({
 // 组件事件
 const emit = defineEmits(['update:visible', 'download-template', 'close']);
 
+// 初始化设备类型检测
+const deviceType = useDeviceType();
+
 // 图片加载状态
 const isLoading = ref(true);
 const loadError = ref(false);
 // 委托单模板列表显示状态
 const showTemplateList = ref(false);
+
+// 计算属性：是否需要横屏显示
+const needLandscapeDisplay = computed(() => {
+  // 初始化设备类型
+  deviceType.initDeviceType();
+  // 非电脑设备需要横屏显示
+  return !deviceType.isPc.value;
+});
 
 // 监听图片URL变化，重置加载状态
 watch(
@@ -146,6 +165,8 @@ watch(
     if (newVisible && props.imageUrl) {
       isLoading.value = true;
       loadError.value = false;
+      // 重新检测设备类型
+      deviceType.initDeviceType();
     }
   }
 );
@@ -154,14 +175,12 @@ watch(
 const handleImageLoad = () => {
   isLoading.value = false;
   loadError.value = false;
-  console.log('图片加载完成:', props.imageUrl);
 };
 
 // 处理图片加载错误
 const handleImageError = () => {
   isLoading.value = false;
   loadError.value = true;
-  console.error('图片加载失败:', props.imageUrl);
 };
 
 // 关闭查看器
@@ -189,6 +208,8 @@ const handleClickOutside = (event) => {
 // 监听点击事件
 onMounted(() => {
   document.addEventListener('click', handleClickOutside);
+  // 初始化设备类型
+  deviceType.initDeviceType();
 });
 
 onUnmounted(() => {
@@ -201,276 +222,3 @@ const handleDownloadTemplate = (template) => {
   emit('download-template', template);
 };
 </script>
-
-<style scoped>
-.image-viewer-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.8);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 9999;
-  overflow: auto;
-  animation: fadeIn 0.3s ease;
-}
-
-.image-viewer-container {
-  background-color: #ffffff;
-  border-radius: 12px;
-  width: 90%;
-  max-width: 90vw;
-  height: 90%;
-  max-height: 90vh;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-  animation: slideIn 0.3s ease;
-  box-sizing: border-box;
-}
-
-/* 头部工具栏 */
-.viewer-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 16px;
-  background-color: #f5f7fa;
-  border-bottom: 1px solid #e4e7ed;
-  flex-shrink: 0;
-}
-
-/* 第一列：标题区域 */
-.header-left {
-  flex: 1;
-  display: flex;
-  align-items: center;
-}
-
-/* 项目名称 */
-.project-name {
-  font-size: 16px;
-  font-weight: 600;
-  color: #303133;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  margin-right: 16px;
-}
-
-/* 第二列：按钮区域 */
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.download-button {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.close-button {
-  padding: 8px;
-}
-
-/* 图片内容区域 */
-.viewer-content {
-  flex: 1;
-  padding: 10px;
-  overflow: auto;
-  display: flex;
-  flex-direction: column;
-  background-color: #ffffff;
-  width: 100%;
-  height: 100%;
-  box-sizing: border-box;
-}
-
-.full-image-container {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: auto;
-  background-color: #ffffff;
-  border-radius: 8px;
-  padding: 0;
-  box-sizing: border-box;
-  position: relative;
-  flex: 1;
-}
-
-.full-image {
-  width: 100%;
-  height: 100%;
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
-  border-radius: 4px;
-  box-shadow: none;
-}
-
-/* 图片加载覆盖层 */
-.image-loading-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: rgba(255, 255, 255, 0.8);
-  border-radius: 8px;
-  z-index: 10;
-}
-
-.full-image-loading,
-.full-image-error {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
-  color: #909399;
-  gap: 16px;
-}
-
-.full-image-loading span,
-.full-image-error span {
-  font-size: 16px;
-}
-
-
-
-/* 动画效果 */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: scale(0.9) translateY(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
-}
-
-/* 右侧按钮组 */
-.header-buttons {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-/* 委托单下载按钮和模板列表 */
-.delegation-download-container {
-  position: relative;
-  display: inline-block;
-  z-index: 10;
-}
-
-.delegation-download-button {
-  background-color: #409EFF;
-  color: white;
-  border: none;
-  padding: 6px 12px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
-}
-
-.delegation-download-button:hover {
-  background-color: #66B1FF;
-}
-
-.delegation-download-button:disabled {
-  background-color: #C6E2FF;
-  cursor: not-allowed;
-}
-
-/* 委托单模板列表 */
-.delegation-template-list {
-  position: absolute;
-  top: 100%;
-  right: 0;
-  min-width: 120px;
-  background-color: white;
-  border: 1px solid #e4e7ed;
-  border-radius: 4px;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
-  margin-top: 4px;
-  z-index: 1000;
-}
-
-/* 委托单模板项 */
-.template-item {
-  padding: 8px 12px;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-  font-size: 14px;
-  text-align: center;
-}
-
-.template-item:hover {
-  background-color: #f5f7fa;
-}
-
-/* 响应式设计 */
-@media (max-width: 768px) {
-  .image-viewer-container {
-    max-width: 95vw;
-    max-height: 95vh;
-  }
-  
-  .viewer-header {
-    padding: 8px 12px;
-  }
-  
-  .project-name {
-    font-size: 14px;
-  }
-  
-  .viewer-content {
-    padding: 8px;
-  }
-  
-  .full-image-container {
-    padding: 0;
-  }
-  
-  /* 响应式下拉菜单 */
-  .template-list-dropdown {
-    min-width: 200px;
-    max-height: 250px;
-  }
-  
-  .template-item {
-    padding: 10px 12px;
-  }
-  
-  .template-name {
-    font-size: 13px;
-  }
-  
-  .template-code {
-    font-size: 11px;
-  }
-}
-</style>

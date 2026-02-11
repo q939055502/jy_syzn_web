@@ -13,18 +13,7 @@ export const requestInterceptor = (config) => {
   const authStore = useAuthStore();
   const token = authStore.token;
   
-  // 打印请求信息，仅在开发环境下
-  if (import.meta.env.DEV) {
-    console.log('=== 请求拦截器 ===');
-    console.log('请求URL:', config.url);
-    console.log('请求方法:', config.method);
-    console.log('当前认证状态:', {
-      token: token ? token.substring(0, 10) + '...' : '无',
-      isLoggedIn: authStore.isLoggedIn
-    });
-    
-    console.log('================');
-  }
+
   
   // 不为刷新令牌请求添加 Authorization 头
   if (token && !config.url.includes('/auth/refresh')) {

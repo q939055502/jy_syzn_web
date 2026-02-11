@@ -1,7 +1,7 @@
 <template>
   <div class="login-container">
     <form class="login-form" @submit.prevent="handleLogin">
-      <h2 class="form-title">后台管理系统</h2>
+      <h2 class="form-title">后台管理</h2>
       
       <div class="form-group">
         <label class="input-label">用户名</label>
@@ -39,8 +39,11 @@
 .form-title {
   text-align: center;
   margin-bottom: 25px;
-  font-size: 22px;
-  font-weight: 600;
+  font-size: 24px;
+  font-weight: 700;
+  color: #ffffff;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.8), 0 0 20px rgba(64, 158, 255, 0.5);
+  letter-spacing: 2px;
 }
 
 .form-group {
@@ -137,23 +140,19 @@ const handleLogin = async () => {
       password: password.value
     };
 
-    console.log('开始登录，表单数据:', loginForm);
     
     // 调用 store 的 login 方法处理登录
     const loginSuccess = await authStore.login(loginForm);
     if (loginSuccess) {
       // 登录成功，跳转到首页
-      console.log('登录成功，即将跳转到首页');
       ElMessage.success('登录成功');
       router.push('/');
     } else {
       // 登录失败，清空密码
-      console.log('登录失败，错误信息:', error.value);
       ElMessage.error(error.value);
       password.value = '';
     }
   } catch (error) {
-    console.error('登录异常:', error);
     password.value = ''; // 清空密码
     ElMessage.error('登录异常，请稍后重试: ' + (error.message || '未知错误'));
   }

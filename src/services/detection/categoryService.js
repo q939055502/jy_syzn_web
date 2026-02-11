@@ -50,7 +50,6 @@ export const categoryService = {
         }
       } else {
         // 非统一格式响应，直接返回数据
-        console.error('获取分类列表失败: 响应格式错误', response);
         return {
           success: false,
           code: 500,
@@ -59,7 +58,6 @@ export const categoryService = {
       }
     } catch (error) {
       // 处理错误，返回错误信息
-      console.error('获取分类列表失败:', error);
       let errorMessage = error.message || '获取分类列表失败，请稍后重试';
       return {
         success: false,
@@ -113,7 +111,6 @@ export const categoryService = {
         }
       } else {
         // 非统一格式响应
-        console.error('获取分类失败: 响应格式错误', response);
         return {
           success: false,
           code: 500,
@@ -121,10 +118,12 @@ export const categoryService = {
         };
       }
     } catch (error) {
-      // 处理异常，更新错误信息
-      console.error('获取分类失败:', error.message);
-      this.error = error.message || '获取分类失败，请稍后重试';
-      return false;
+      // 处理异常，返回错误信息
+      return {
+        success: false,
+        code: 500,
+        message: error.message || '获取分类失败，请稍后重试'
+      };
     }
   },
 
@@ -172,7 +171,6 @@ export const categoryService = {
         }
       } else {
         // 非统一格式响应
-        console.error('创建分类失败: 响应格式错误', response);
         return {
           success: false,
           code: 500,
@@ -181,7 +179,6 @@ export const categoryService = {
       }
     } catch (error) {
       // 处理错误，返回错误信息
-      console.error('创建分类失败:', error);
       let errorMessage = error.message || '创建分类失败，请稍后重试';
       return {
         success: false,
@@ -239,7 +236,6 @@ export const categoryService = {
         }
       } else {
         // 非统一格式响应
-        console.error('更新分类失败: 响应格式错误', response);
         return {
           success: false,
           code: 500,
@@ -248,7 +244,6 @@ export const categoryService = {
       }
     } catch (error) {
       // 处理错误，返回错误信息
-      console.error('更新分类失败:', error);
       let errorMessage = error.message || '更新分类失败，请稍后重试';
       return {
         success: false,
@@ -306,7 +301,6 @@ export const categoryService = {
         }
       } else {
         // 非统一格式响应
-        console.error('删除分类失败: 响应格式错误', response);
         return {
           success: false,
           code: 500,
@@ -315,7 +309,6 @@ export const categoryService = {
       }
     } catch (error) {
       // 处理错误，返回错误信息
-      console.error('删除分类失败:', error);
       let errorMessage = '删除分类失败，请稍后重试';
       let errorCode = 500;
       
@@ -414,7 +407,6 @@ export const categoryService = {
         }
       } else {
         // 非统一格式响应
-        console.error('启用分类失败: 响应格式错误', response);
         return {
           success: false,
           code: 500,
@@ -423,7 +415,6 @@ export const categoryService = {
       }
     } catch (error) {
       // 处理错误，返回错误信息
-      console.error('启用分类失败:', error);
       let errorMessage = error.message || '启用分类失败，请稍后重试';
       return {
         success: false,
@@ -477,7 +468,6 @@ export const categoryService = {
         }
       } else {
         // 非统一格式响应
-        console.error('禁用分类失败: 响应格式错误', response);
         return {
           success: false,
           code: 500,
@@ -486,7 +476,6 @@ export const categoryService = {
       }
     } catch (error) {
       // 处理错误，返回错误信息
-      console.error('禁用分类失败:', error);
       let errorMessage = error.message || '禁用分类失败，请稍后重试';
       return {
         success: false,

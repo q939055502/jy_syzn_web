@@ -20,7 +20,11 @@ export const useAuthStore = defineStore('auth', {
     // token
     token: '',
     // 令牌刷新定时器
-    refreshTimer: null
+    refreshTimer: null,
+    // 无操作超时定时器
+    inactivityTimer: null,
+    // 无操作超时时间（秒），默认15分钟
+    inactivityTimeout: 15 * 60
   }),
   
   // 计算属性（getters）
@@ -76,14 +80,12 @@ export const useAuthStore = defineStore('auth', {
           this.token = result.data.token;
           this.isLoggedIn = true;
           
-          console.log('登录成功，令牌已保存:', this.token);
-          
           // 自动获取用户信息
-          console.log('开始获取用户信息...');
           await this.fetchUserInfo();
           
-          // 设置令牌刷新定时器
+          // 设置令牌刷新定时器和无操作超时计时器
           this.setRefreshTimer();
+          this.setInactivityTimer();
           
           return true;
         } else {
@@ -93,7 +95,6 @@ export const useAuthStore = defineStore('auth', {
         }
       } catch (error) {
         // 处理异常，更新错误信息
-        console.error('登录请求失败:', error.message);
         this.error = error.message || '登录失败，请稍后重试';
         return false;
       } finally {
@@ -114,7 +115,6 @@ export const useAuthStore = defineStore('auth', {
         }
         return false;
       } catch (error) {
-        console.error('获取用户信息失败:', error.message);
         return false;
       }
     },
@@ -133,6 +133,8 @@ export const useAuthStore = defineStore('auth', {
         if (result.success) {
           // 刷新成功，更新 token
           this.token = result.data.token;
+          // 重置无操作计时器
+          this.setInactivityTimer();
           return true;
         } else {
           // 刷新失败，清除本地状态
@@ -141,7 +143,6 @@ export const useAuthStore = defineStore('auth', {
         }
       } catch (error) {
         // 处理异常，清除本地状态
-        console.error('刷新令牌失败:', error.message);
         this.clearAuthState();
         return false;
       }
@@ -160,7 +161,6 @@ export const useAuthStore = defineStore('auth', {
         await authService.logout();
       } catch (error) {
         // 处理异常，更新错误信息
-        console.error('登出失败:', error.message);
         this.error = error.message || '登出失败，请稍后重试';
       } finally {
         // 无论登出请求是否成功，都清除本地状态
@@ -179,6 +179,7 @@ export const useAuthStore = defineStore('auth', {
       this.token = '';
       this.isLoggedIn = false;
       this.clearRefreshTimer();
+      this.clearInactivityTimer();
     },
 
     /**
@@ -188,6 +189,43 @@ export const useAuthStore = defineStore('auth', {
       if (this.refreshTimer) {
         clearTimeout(this.refreshTimer);
         this.refreshTimer = null;
+      }
+    },
+
+    /**
+     * 设置无操作超时计时器
+     */
+    setInactivityTimer() {
+      // 清除现有的无操作计时器
+      this.clearInactivityTimer();
+      
+      // 如果没有登录，不设置计时器
+      if (!this.isLoggedIn) return;
+      
+      // 设置无操作超时计时器
+      this.inactivityTimer = setTimeout(() => {
+        this.clearAuthState();
+        // 跳转到登录页
+        window.location.href = '/login';
+      }, this.inactivityTimeout * 1000);
+    },
+
+    /**
+     * 重置无操作超时计时器
+     */
+    resetInactivityTimer() {
+      if (this.isLoggedIn) {
+        this.setInactivityTimer();
+      }
+    },
+
+    /**
+     * 清除无操作超时计时器
+     */
+    clearInactivityTimer() {
+      if (this.inactivityTimer) {
+        clearTimeout(this.inactivityTimer);
+        this.inactivityTimer = null;
       }
     },
 

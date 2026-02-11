@@ -140,9 +140,8 @@ router.beforeEach(async (to, from, next) => {
         return
       }
     } catch (error) {
-      console.error('路由守卫刷新令牌失败:', error)
+      // 刷新失败，不做处理
     }
-    // 刷新失败，跳转到登录页面
     next({ name: 'login' })
     return
   }

@@ -13,7 +13,6 @@ export const authService = {
    * @returns {Object} - 标准化的响应结果
    */
   handleResponse(response, successMessage = '操作成功', errorMessage = '操作失败') {
-    console.log('处理响应:', response);
     
     // 统一格式响应：包含 code 字段
     if (response && typeof response === 'object' && 'code' in response) {
@@ -68,7 +67,6 @@ export const authService = {
     }
     
     // 响应格式错误
-    console.error('响应格式错误:', response);
     return {
       success: false,
       message: '响应格式错误'
@@ -82,7 +80,6 @@ export const authService = {
    * @returns {Object} - 标准化的错误结果
    */
   handleError(error, defaultMessage = '操作失败，请稍后重试') {
-    console.error('请求失败:', error);
     
     // 从错误对象中提取详细的错误信息
     let errorMessage = defaultMessage;
@@ -130,12 +127,9 @@ export const authService = {
   async login(loginForm) {
     try {
       const response = await userApi.login(loginForm);
-      console.log('登录响应:', response);
       const result = this.handleResponse(response, '登录成功', '登录失败，请稍后重试');
-      console.log('处理后的登录结果:', result);
       return result;
     } catch (error) {
-      console.error('登录错误:', error);
       return this.handleError(error, '登录失败，请稍后重试');
     }
   },

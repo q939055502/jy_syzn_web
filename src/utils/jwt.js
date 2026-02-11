@@ -26,9 +26,8 @@ export const parseJWT = (token) => {
     return JSON.parse(decodedPayload);
   } catch (error) {
     // 解码失败，返回 null
-    console.error('JWT 解析失败:', error);
     return null;
-  }
+    }
 };
 
 /**
@@ -49,9 +48,8 @@ export const getTokenRemainingTime = (token) => {
     
     return remainingTime;
   } catch (error) {
-    console.error('计算 token 剩余时间失败:', error);
     return null;
-  }
+    }
 };
 
 /**

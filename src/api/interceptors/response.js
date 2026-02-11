@@ -50,16 +50,7 @@ export const responseInterceptor = (response) => {
  * @returns {Promise} - 拒绝的 Promise，包含处理后的错误信息
  */
 export const responseInterceptorError = async (error) => {
-  // 开发环境下打印错误日志，便于调试
-  if (import.meta.env.DEV) {
-    console.error('API请求失败:', {
-      url: error.config?.url,
-      method: error.config?.method,
-      status: error.response?.status,
-      data: error.response?.data,
-      message: error.message
-    });
-  }
+
   
   // 401 错误特殊处理：尝试刷新令牌
   if (error.response && error.response.status === 401) {

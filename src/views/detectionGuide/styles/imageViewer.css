@@ -1,0 +1,329 @@
+/**
+ * 图片查看器组件样式
+ */
+
+.image-viewer-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  overflow: auto;
+  animation: fadeIn 0.3s ease;
+}
+
+/* 确保横屏容器在覆盖层中正确居中 */
+.image-viewer-overlay {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  min-width: 100vw;
+}
+
+.landscape-container {
+  transform: rotate(90deg);
+  transform-origin: center center;
+  width: 80vh;
+  max-width: 80vh;
+  height: 80vw;
+  max-height: 80vw;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+/* 横屏容器内的内容区域需要调整 */
+.landscape-container .viewer-content {
+  height: 100%;
+  overflow: auto;
+}
+
+.landscape-container .full-image-container {
+  height: 100%;
+}
+
+.landscape-container .full-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.image-viewer-container {
+  background-color: #ffffff;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 90vw;
+  height: 90%;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  animation: slideIn 0.3s ease;
+  box-sizing: border-box;
+}
+
+/* 头部工具栏 */
+.viewer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 16px;
+  background-color: #f5f7fa;
+  border-bottom: 1px solid #e4e7ed;
+  flex-shrink: 0;
+}
+
+/* 第一列：标题区域 */
+.header-left {
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+/* 项目名称 */
+.project-name {
+  font-size: 20px;
+  font-weight: 600;
+  color: #303133;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-right: 16px;
+  text-align: center;
+  flex: 1;
+}
+
+/* 第二列：按钮区域 */
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.download-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.close-button {
+  padding: 8px;
+}
+
+/* 图片内容区域 */
+.viewer-content {
+  flex: 1;
+  padding: 10px;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  background-color: #ffffff;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.full-image-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: auto;
+  background-color: #ffffff;
+  border-radius: 8px;
+  padding: 0;
+  box-sizing: border-box;
+  position: relative;
+  flex: 1;
+}
+
+.full-image {
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 4px;
+  box-shadow: none;
+}
+
+/* 横屏显示样式 - 非电脑设备 */
+.landscape-container {
+  transform: rotate(90deg);
+  transform-origin: center center;
+  width: 90vh;
+  max-width: 90vh;
+  height: 90vw;
+  max-height: 90vw;
+  overflow: hidden;
+}
+
+.landscape-container .full-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* 图片加载覆盖层 */
+.image-loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(255, 255, 255, 0.8);
+  border-radius: 8px;
+  z-index: 10;
+}
+
+.full-image-loading,
+.full-image-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: #909399;
+  gap: 16px;
+}
+
+.full-image-loading span,
+.full-image-error span {
+  font-size: 16px;
+}
+
+
+
+/* 动画效果 */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* 右侧按钮组 */
+.header-buttons {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* 委托单下载按钮和模板列表 */
+.delegation-download-container {
+  position: relative;
+  display: inline-block;
+  z-index: 10;
+}
+
+.delegation-download-button {
+  background-color: #409EFF;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.delegation-download-button:hover {
+  background-color: #66B1FF;
+}
+
+.delegation-download-button:disabled {
+  background-color: #C6E2FF;
+  cursor: not-allowed;
+}
+
+/* 委托单模板列表 */
+.delegation-template-list {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  min-width: 120px;
+  background-color: white;
+  border: 1px solid #e4e7ed;
+  border-radius: 4px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  margin-top: 4px;
+  z-index: 1000;
+}
+
+/* 委托单模板项 */
+.template-item {
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  font-size: 14px;
+  text-align: center;
+}
+
+.template-item:hover {
+  background-color: #f5f7fa;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .image-viewer-container {
+    max-width: 95vw;
+    max-height: 95vh;
+  }
+  
+  .viewer-header {
+    padding: 8px 12px;
+  }
+  
+  .project-name {
+    font-size: 14px;
+  }
+  
+  .viewer-content {
+    padding: 8px;
+  }
+  
+  .full-image-container {
+    padding: 0;
+  }
+  
+  /* 响应式下拉菜单 */
+  .template-list-dropdown {
+    min-width: 200px;
+    max-height: 250px;
+  }
+  
+  .template-item {
+    padding: 10px 12px;
+  }
+  
+  .template-name {
+    font-size: 13px;
+  }
+  
+  .template-code {
+    font-size: 11px;
+  }
+}

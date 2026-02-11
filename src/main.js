@@ -22,18 +22,19 @@ async function handlePageRefresh() {
     try {
       const refreshSuccess = await authStore.refreshToken()
       if (refreshSuccess && authStore.token) {
-        // 刷新成功，设置令牌刷新定时器
+        // 刷新成功，设置令牌刷新定时器和无操作超时计时器
         authStore.setRefreshTimer()
+        authStore.setInactivityTimer()
         // 获取用户信息
         await authStore.fetchUserInfo()
       }
     } catch (error) {
-      console.error('页面刷新时刷新令牌失败:', error)
       // 刷新失败，不做处理
     }
   } else if (authStore.token) {
-    // 如果有令牌，设置令牌刷新定时器
+    // 如果有令牌，设置令牌刷新定时器和无操作超时计时器
     authStore.setRefreshTimer()
+    authStore.setInactivityTimer()
     // 如果有令牌但没有 userInfo，获取用户信息
     if (!authStore.userInfo) {
       authStore.fetchUserInfo()
@@ -42,7 +43,28 @@ async function handlePageRefresh() {
 }
 
 // 处理页面刷新
-handlePageRefresh()
+async function initializeApp() {
+  await handlePageRefresh()
+  
+  // 如果用户已登录，设置无操作超时计时器
+  if (authStore.isLoggedIn) {
+    authStore.setInactivityTimer()
+  }
+  
+  // 添加用户交互事件监听器，用于重置无操作超时计时器
+  const activityEvents = ['click', 'keydown', 'scroll', 'touchstart', 'mousemove']
+  
+  activityEvents.forEach(event => {
+    document.addEventListener(event, () => {
+      if (authStore.isLoggedIn) {
+        authStore.resetInactivityTimer()
+      }
+    }, { capture: true })
+  })
+}
+
+// 初始化应用
+initializeApp()
 
 app.use(ElementPlus)
 app.use(router)

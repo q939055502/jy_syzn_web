@@ -13,8 +13,7 @@ export const detectionStandardService = {
   async getDetectionStandardList(params = {}) {
     try {
       // 调用 API 层的获取检评规范列表方法
-      const response = await detectionStandardApi.getDetectionStandardList(params);
-      console.log('获取检评规范列表响应:', response); 
+      const response = await standardApi.getStandardList(params);
       // 检查是否是统一格式响应
       if (response && typeof response === 'object' && 'code' in response) {
         // 统一格式响应
@@ -50,7 +49,6 @@ export const detectionStandardService = {
         }
       } else {
         // 非统一格式响应，直接返回数据
-        console.error('获取检评规范列表失败: 响应格式错误', response);
         return {
           success: false,
           code: 500,
@@ -59,7 +57,6 @@ export const detectionStandardService = {
       }
     } catch (error) {
       // 处理错误，返回错误信息
-      console.error('获取检评规范列表失败:', error);
       let errorMessage = error.message || '获取检评规范列表失败，请稍后重试';
       return {
         success: false,
@@ -113,7 +110,6 @@ export const detectionStandardService = {
         }
       } else {
         // 非统一格式响应
-        console.error('获取检评规范失败: 响应格式错误', response);
         return {
           success: false,
           code: 500,
@@ -122,7 +118,6 @@ export const detectionStandardService = {
       }
     } catch (error) {
       // 处理错误，返回错误信息
-      console.error('获取检评规范失败:', error);
       let errorMessage = error.message || '获取检评规范失败，请稍后重试';
       return {
         success: false,
@@ -176,7 +171,6 @@ export const detectionStandardService = {
         }
       } else {
         // 非统一格式响应
-        console.error('创建检评规范失败: 响应格式错误', response);
         return {
           success: false,
           code: 500,
@@ -185,7 +179,6 @@ export const detectionStandardService = {
       }
     } catch (error) {
       // 处理错误，返回错误信息
-      console.error('创建检评规范失败:', error);
       let errorMessage = error.message || '创建检评规范失败，请稍后重试';
       return {
         success: false,
@@ -243,7 +236,6 @@ export const detectionStandardService = {
         }
       } else {
         // 非统一格式响应
-        console.error('更新检评规范失败: 响应格式错误', response);
         return {
           success: false,
           code: 500,
@@ -252,7 +244,6 @@ export const detectionStandardService = {
       }
     } catch (error) {
       // 处理错误，返回错误信息
-      console.error('更新检评规范失败:', error);
       let errorMessage = error.message || '更新检评规范失败，请稍后重试';
       return {
         success: false,
@@ -311,7 +302,6 @@ export const detectionStandardService = {
         }
       } else {
         // 非统一格式响应
-        console.error('删除检评规范失败: 响应格式错误', response);
         return {
           success: false,
           code: 500,
@@ -320,7 +310,6 @@ export const detectionStandardService = {
       }
     } catch (error) {
       // 处理错误，返回错误信息
-      console.error('删除检评规范失败:', error);
       let errorMessage = '删除检评规范失败，请稍后重试';
       let errorCode = 500;
       

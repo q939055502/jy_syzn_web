@@ -13,8 +13,7 @@ export const delegationFormTemplateService = {
   async getDelegationFormTemplateList(params = {}) {
     try {
       // 调用 API 层的获取委托单模板列表方法
-      const response = await delegationFormTemplateApi.getDelegationFormTemplateList(params);
-      console.log('获取委托单模板列表响应:', response); 
+      const response = await templateApi.getTemplateList(params);
       // 检查是否是统一格式响应
       if (response && typeof response === 'object' && 'code' in response) {
         // 统一格式响应
@@ -50,7 +49,6 @@ export const delegationFormTemplateService = {
         }
       } else {
         // 非统一格式响应，直接返回数据
-        console.error('获取委托单模板列表失败: 响应格式错误', response);
         return {
           success: false,
           code: 500,
@@ -59,7 +57,6 @@ export const delegationFormTemplateService = {
       }
     } catch (error) {
       // 处理错误，返回错误信息
-      console.error('获取委托单模板列表失败:', error);
       let errorMessage = error.message || '获取委托单模板列表失败，请稍后重试';
       return {
         success: false,
@@ -113,7 +110,6 @@ export const delegationFormTemplateService = {
         }
       } else {
         // 非统一格式响应
-        console.error('获取委托单模板失败: 响应格式错误', response);
         return {
           success: false,
           code: 500,
@@ -122,7 +118,6 @@ export const delegationFormTemplateService = {
       }
     } catch (error) {
       // 处理错误，返回错误信息
-      console.error('获取委托单模板失败:', error);
       let errorMessage = error.message || '获取委托单模板失败，请稍后重试';
       return {
         success: false,
@@ -138,18 +133,6 @@ export const delegationFormTemplateService = {
    * @returns {Promise<Object>} - 创建结果
    */
   async createDelegationFormTemplate(templateData) {
-    // 正确打印 FormData 对象的内容
-  console.log('templateData type:', typeof templateData);
-  console.log('templateData is FormData:', templateData instanceof FormData);
-  
-  if (templateData instanceof FormData) {
-    console.log('FormData entries:');
-    for (let [key, value] of templateData.entries()) {
-      console.log(`${key}: ${value}`);
-    }
-  } else {
-    console.log('templateData:', templateData);
-  }
     try {
       // 调用 API 层的创建委托单模板方法
       const response = await delegationFormTemplateApi.createDelegationFormTemplate(templateData);
@@ -188,7 +171,6 @@ export const delegationFormTemplateService = {
         }
       } else {
         // 非统一格式响应
-        console.error('创建委托单模板失败: 响应格式错误', response);
         return {
           success: false,
           code: 500,
@@ -197,7 +179,6 @@ export const delegationFormTemplateService = {
       }
     } catch (error) {
       // 处理错误，返回错误信息
-      console.error('创建委托单模板失败:', error);
       let errorMessage = error.message || '创建委托单模板失败，请稍后重试';
       return {
         success: false,
@@ -255,7 +236,6 @@ export const delegationFormTemplateService = {
         }
       } else {
         // 非统一格式响应
-        console.error('更新委托单模板失败: 响应格式错误', response);
         return {
           success: false,
           code: 500,
@@ -264,7 +244,6 @@ export const delegationFormTemplateService = {
       }
     } catch (error) {
       // 处理错误，返回错误信息
-      console.error('更新委托单模板失败:', error);
       let errorMessage = error.message || '更新委托单模板失败，请稍后重试';
       return {
         success: false,
@@ -323,7 +302,6 @@ export const delegationFormTemplateService = {
         }
       } else {
         // 非统一格式响应
-        console.error('删除委托单模板失败: 响应格式错误', response);
         return {
           success: false,
           code: 500,
@@ -332,7 +310,6 @@ export const delegationFormTemplateService = {
       }
     } catch (error) {
       // 处理错误，返回错误信息
-      console.error('删除委托单模板失败:', error);
       let errorMessage = '删除委托单模板失败，请稍后重试';
       let errorCode = 500;
       
@@ -431,7 +408,6 @@ export const delegationFormTemplateService = {
         }
       } else {
         // 非统一格式响应
-        console.error('启用委托单模板失败: 响应格式错误', response);
         return {
           success: false,
           code: 500,
@@ -440,7 +416,6 @@ export const delegationFormTemplateService = {
       }
     } catch (error) {
       // 处理错误，返回错误信息
-      console.error('启用委托单模板失败:', error);
       let errorMessage = error.message || '启用委托单模板失败，请稍后重试';
       return {
         success: false,
@@ -494,7 +469,6 @@ export const delegationFormTemplateService = {
         }
       } else {
         // 非统一格式响应
-        console.error('禁用委托单模板失败: 响应格式错误', response);
         return {
           success: false,
           code: 500,
@@ -503,7 +477,6 @@ export const delegationFormTemplateService = {
       }
     } catch (error) {
       // 处理错误，返回错误信息
-      console.error('禁用委托单模板失败:', error);
       let errorMessage = error.message || '禁用委托单模板失败，请稍后重试';
       return {
         success: false,
@@ -557,7 +530,6 @@ export const delegationFormTemplateService = {
         }
       } else {
         // 非统一格式响应
-        console.error('获取委托单模板使用情况失败: 响应格式错误', response);
         return {
           success: false,
           code: 500,
@@ -566,7 +538,6 @@ export const delegationFormTemplateService = {
       }
     } catch (error) {
       // 处理错误，返回错误信息
-      console.error('获取委托单模板使用情况失败:', error);
       let errorMessage = error.message || '获取委托单模板使用情况失败，请稍后重试';
       return {
         success: false,
