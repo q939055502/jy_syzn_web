@@ -110,13 +110,21 @@ const menuRef = ref(null);
 
 // 计算当前激活的菜单ID
 const activeMenuId = computed(() => {
-  console.log('Computing activeMenuId with selectedObjectId:', props.selectedObjectId);
+  console.log('Computing activeMenuId with:', {
+    selectedObjectId: props.selectedObjectId,
+    selectedCategoryId: props.selectedCategoryId
+  });
   if (props.selectedObjectId !== null && props.selectedObjectId !== undefined) {
-    return `object-${props.selectedObjectId}`;
+    const menuId = `object-${props.selectedObjectId}`;
+    console.log('Returning object menu ID:', menuId);
+    return menuId;
   }
   if (props.selectedCategoryId !== null && props.selectedCategoryId !== undefined) {
-    return `${props.selectedCategoryId}`;
+    const menuId = `${props.selectedCategoryId}`;
+    console.log('Returning category menu ID:', menuId);
+    return menuId;
   }
+  console.log('Returning empty menu ID');
   return '';
 });
 
@@ -124,11 +132,17 @@ const activeMenuId = computed(() => {
 const handleMenuSelect = (index) => {
   console.log('handleMenuSelect called with index:', index);
   console.log("----------")
+  console.log(index.startsWith('object-'));
   if (index.startsWith('object-')) {
     // 选中的是检测对象
      console.log(index);
     const objectId = parseInt(index.replace('object-', ''));
-    console.log('Emitting update:selectedObjectId with--:', objectId);
+    console.log('objectId:', objectId);
+    console.log(typeof objectId);
+    console.log("++++++++++++++++++++")
+
+
+
     emit('update:selectedObjectId', objectId);
     
     // 查找并设置对应的分类ID
@@ -140,14 +154,20 @@ const handleMenuSelect = (index) => {
         break;
       }
     }
-    console.log('Emitting update:selectedCategoryId with:', categoryId);
+    console.log('分类id', categoryId);
     emit('update:selectedCategoryId', categoryId);
   }
 };
 
 // 处理分类项点击事件
 const handleCategoryClick = (categoryId) => {
-  // 分类标题点击时不执行置顶操作，留给handleMenuOpen处理
+  console.log('handleCategoryClick called with categoryId:', categoryId);
+  // 更新选中的分类ID
+  emit('update:selectedCategoryId', categoryId);
+  // 清空选中的对象ID，因为现在只选中了分类
+  emit('update:selectedObjectId', null);
+  // 展开当前分类
+  emit('update:expandedCategories', [categoryId]);
 };
 
 // 处理菜单展开事件
