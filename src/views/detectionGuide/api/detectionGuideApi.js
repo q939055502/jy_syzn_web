@@ -14,6 +14,7 @@ const apiClient = axios.create({
 export const getCategoriesWithObjects = async () => {
   try {
     const response = await apiClient.get('/categories/objects');
+    console.log('获取分类及其检测对象成功:', response.data);
     return response.data;
   } catch (error) {
     console.error('获取分类及其检测对象失败:', error);

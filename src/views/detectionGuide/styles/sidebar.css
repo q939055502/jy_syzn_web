@@ -50,10 +50,12 @@
   color: #ffffff !important;
 }
 
-/* 确保所有文字都是白色 */
-.sidebar-menu * {
-  color: #ffffff !important;
+/* 确保菜单基本文字是白色 */
+.sidebar-menu {
+  color: #ffffff;
 }
+
+/* 保留默认激活项样式，不添加自定义样式 */
 
 /* 隐藏默认的下拉箭头 */
 .sidebar-menu :deep(.el-sub-menu__icon-arrow) {
@@ -123,15 +125,6 @@
   color: #ffffff !important;
   padding-left: 52px;
   border-left: 4px solid #66B1FF;
-}
-
-.sidebar-menu :deep(.el-menu-item.is-active),
-.active-item {
-  background-color: #1e1e1e !important;
-  color: #ffffff !important;
-  padding-left: 52px;
-  border-left: 4px solid #409EFF;
-  font-weight: 500;
 }
 
 /* 检测对象文字样式 */

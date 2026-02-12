@@ -1,0 +1,362 @@
+选中项未高亮的核心问题分析
+选中项未高亮是脚本层未正确绑定 Element Plus 菜单激活态 + 样式层重复定义、优先级冲突 + DOM 手动操作存在失效风险 三者共同导致的，以下是逐点问题拆解和对应解决方案：
+一、脚本层核心问题：未绑定 Element Plus 菜单的激活索引
+Element Plus 的el-menu本身提供了 **active-index** 属性来控制菜单项的激活态，会自动为匹配的el-menu-item添加is-active类，而你的代码中仅手动操作 DOM 加类，未绑定该核心属性，导致组件自身的激活态管理失效，且手动 DOM 操作存在渲染时机失效的风险。
+具体问题点：
+计算属性activeMenuId已正确返回激活项的index（object-xxx），但未绑定到el-menu的:active-index；
+手动遍历 DOM 加is-active类的逻辑冗余，且若categories为异步加载，会出现DOM 未渲染完成时遍历不到元素的情况，导致加类失效；
+el-menu-item同时绑定active-item和is-active两个同类判断的类，属于无意义重复。
+二、样式层核心问题：重复定义激活项样式，优先级 / 属性冲突
+CSS 中对 **.el-menu-item.is-active** 进行了两次重复定义，且部分属性覆盖、!important使用不统一，导致高亮样式未生效。
+具体冲突点：
+第一次定义（高优先级，带!important）：
+css
+.sidebar-menu :deep(.el-menu-item.is-active),
+.sidebar-menu :deep(.el-menu-item.active-item) {
+  background-color: #2c3e50 !important; /* 深蓝高亮 */
+  color: #ffffff !important;
+  padding-left: 52px !important;
+  border-left: 4px solid #409EFF !important;
+  /* 其他高亮样式 */
+}
+第二次定义（无!important，但选择器重复，覆盖部分属性）：
+css
+.sidebar-menu :deep(.el-menu-item.is-active),
+.active-item {
+  background-color: #1e1e1e !important; /* 深灰，覆盖了上面的深蓝高亮 */
+  color: #ffffff !important;
+  padding-left: 52px;
+  border-left: 4px solid #409EFF;
+  font-weight: 500; /* 覆盖了上面的700 */
+}
+关键：第二次定义的background-color: #1e1e1e和第一次的#2c3e50冲突，且#1e1e1e和侧边栏背景#1a1a1a/#121212色差极小，视觉上几乎无高亮效果，这是肉眼看不到高亮的直接原因。
+三、其他次要问题
+el-menu的:collapse-transition="false" 与全局样式.el-menu--collapse-transition { transition: none !important; } 重复，无影响但冗余；
+手动加类的 watch 逻辑中，未做空值判断，若selectedObjectId为null，会执行无效的 DOM 操作。
+完整解决方案（按步骤修改，可直接复制替换）
+步骤 1：修改 Vue 模板，绑定激活索引 + 删除冗余类
+核心：给el-menu绑定:active-index，删除el-menu-item的冗余类绑定
+vue
+<el-menu
+  ref="menuRef"
+  class="sidebar-menu"
+  :unique-opened="true"
+  @select="handleMenuSelect"
+  :default-openeds="expandedCategories"
+  @open="handleMenuOpen"
+  @close="handleMenuClose"
+  background-color="#1a1a1a"
+  text-color="#ffffff"
+  active-text-color="#ffffff"
+  :collapse-transition="false"
+  :active-index="activeMenuId" <!-- 新增：绑定激活索引 -->
+>
+  <!-- 分类列表 -->
+  <el-sub-menu
+    v-for="category in categories"
+    :key="`category-${category.id}`"
+    :index="`${category.id}`"
+    class="category-item"
+    :data-category-id="category.id"
+  >
+    <!-- 标题模板不变 -->
+    <template #title>
+      <div class="category-title" @click="handleCategoryClick(category.id)">
+        <el-icon :class="{ 'is-expanded': expandedCategories.includes(category.id) }">
+          <Minus v-if="expandedCategories.includes(category.id)" />
+          <Plus v-else />
+        </el-icon>
+        <span>{{ category.name }}</span>
+      </div>
+    </template>
+    
+    <!-- 检测对象列表：删除冗余的is-active类，仅保留一个即可 -->
+    <el-menu-item
+      v-for="object in category.objects"
+      :key="`object-${object.id}`"
+      :index="`object-${object.id}`"
+      :class="{ 'active-item': selectedObjectId === object.id }" <!-- 简化类绑定 -->
+    >
+      <div class="object-title">
+        <span>{{ object.name }}</span>
+      </div>
+    </el-menu-item>
+  </el-sub-menu>
+</el-menu>
+步骤 2：修改 Vue 脚本，删除冗余的手动 DOM 加类逻辑
+核心：利用el-menu的active-index自动管理激活态，删除 watch 中的 DOM 操作，保留空值判断即可
+vue
+<script setup>
+import { computed, ref, nextTick, watch } from 'vue';
+import { Menu, Plus, Minus } from '@element-plus/icons-vue';
+import './styles/sidebar.css';
+import { getDetectionObjects } from '../../api/detectionApi';
+
+const props = defineProps({
+  categories: { type: Array, default: () => [] },
+  expandedCategories: { type: Array, default: () => [] },
+  selectedCategoryId: { type: [Number, null], default: null },
+  selectedObjectId: { type: [Number, null], default: null },
+  isVisible: { type: Boolean, default: true }
+});
+
+const emit = defineEmits([
+  'update:selectedCategoryId',
+  'update:selectedObjectId',
+  'update:expandedCategories'
+]);
+
+const sidebarContentRef = ref(null);
+const menuRef = ref(null);
+
+// 计算当前激活的菜单ID（不变，仅绑定到模板即可）
+const activeMenuId = computed(() => {
+  if (props.selectedObjectId !== null && props.selectedObjectId !== undefined) {
+    return `object-${props.selectedObjectId}`;
+  }
+  if (props.selectedCategoryId !== null && props.selectedCategoryId !== undefined) {
+    return `${props.selectedCategoryId}`;
+  }
+  return '';
+});
+
+// 【删除/注释】原有的手动DOM加类的watch逻辑，无需手动操作
+// watch(() => props.selectedObjectId, (newValue) => { ... }, { immediate: true });
+
+// 其他方法（handleMenuSelect/handleMenuOpen/handleMenuClose）保持不变
+const handleMenuSelect = (index) => {
+  console.log('handleMenuSelect called with index:', index);
+  if (index.startsWith('object-')) {
+    const objectId = parseInt(index.replace('object-', ''));
+    emit('update:selectedObjectId', objectId);
+    let categoryId = null;
+    for (const category of props.categories) {
+      const found = category.objects.some(obj => obj.id == objectId);
+      if (found) {
+        categoryId = category.id;
+        break;
+      }
+    }
+    emit('update:selectedCategoryId', categoryId);
+  }
+};
+
+const handleCategoryClick = (categoryId) => {};
+const handleMenuOpen = (index, indexPath) => {
+  const categoryId = parseInt(index);
+  emit('update:expandedCategories', [categoryId]);
+  nextTick(() => {
+    if (!sidebarContentRef.value) return;
+    const categoryElement = document.querySelector(`.category-item[data-category-id="${categoryId}"]`);
+    if (!categoryElement) return;
+    const sidebarContent = sidebarContentRef.value;
+    const targetTop = categoryElement.offsetTop - 10;
+    sidebarContent.scrollTo({
+      top: Math.max(0, targetTop),
+      behavior: 'smooth'
+    });
+  });
+};
+const handleMenuClose = (index) => {
+  emit('update:expandedCategories', []);
+};
+</script>
+步骤 3：修改 CSS 样式，删除重复定义，统一高亮样式
+核心：删除第二次的.el-menu-item.is-active定义，保留一次高亮样式，并调整background-color为视觉差异明显的颜色，同时删除冗余样式。
+css
+/**
+ * 侧边栏组件样式 - 精简后
+ */
+.sidebar-container {
+  background-color: #1a1a1a;
+  border-right: 1px solid #333;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  margin: 0 !important;
+  padding: 0 !important;
+  position: relative;
+  height: 100vh;
+  width: 100%;
+}
+.logo {
+  height: 40px;
+  top: 0;
+  color: #ffffff !important;
+  background-color: #1a1a1a;
+  line-height: 40px;
+  text-align: center;
+  font-size: 18px;
+  border-bottom: 1px solid #333;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+.sidebar-content {
+  flex: 1;
+  overflow-y: auto;
+  background-color: #1a1a1a;
+  margin: 0 !important;
+  padding: 0 !important;
+  scroll-behavior: smooth;
+  transition: all 0.3s ease;
+  scrollbar-width: thin;
+  scrollbar-color: #666 #333;
+}
+/* 侧边栏菜单样式 */
+.sidebar-menu {
+  border-right: none;
+  background-color: #1a1a1a;
+  color: #ffffff !important;
+}
+/* 激活项样式 - 唯一定义，提高视觉对比度，保留!important确保优先级 */
+.sidebar-menu :deep(.el-menu-item.is-active),
+.sidebar-menu :deep(.el-menu-item.active-item) {
+  background-color: #2c3e50 !important; /* 深蓝，与背景#121212/#1a1a1a色差明显 */
+  color: #ffffff !important;
+  padding-left: 52px !important;
+  border-left: 4px solid #409EFF !important;
+  font-weight: 700 !important;
+  box-shadow: inset 0 0 10px rgba(64, 158, 255, 0.3) !important;
+  border-right: 2px solid #409EFF !important;
+  transition: all 0.3s ease !important;
+  z-index: 1 !important;
+  position: relative !important;
+}
+/* 激活项文字样式 - 唯一定义 */
+.sidebar-menu :deep(.el-menu-item.is-active) span,
+.sidebar-menu :deep(.el-menu-item.active-item) span {
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  font-size: 14px !important;
+  z-index: 2 !important;
+  position: relative !important;
+}
+/* 隐藏默认的下拉箭头 */
+.sidebar-menu :deep(.el-sub-menu__icon-arrow) {
+  display: none !important;
+}
+/* Element Plus图标样式 */
+.sidebar-menu :deep(.el-icon) {
+  color: #ffffff !important;
+  margin-right: 8px;
+  font-size: 16px;
+}
+/* 分类标题样式 */
+.sidebar-menu :deep(.el-sub-menu__title) {
+  padding: 16px 16px;
+  margin: 0;
+  border-radius: 0;
+  transition: all 0.2s ease;
+  background-color: #2a2a2a;
+  color: #ffffff !important;
+  height: auto;
+  line-height: 24px;
+  border-bottom: 2px solid #409EFF;
+  font-size: 16px;
+  font-weight: 700;
+  position: relative;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+}
+.sidebar-menu :deep(.el-sub-menu__title:hover) {
+  background-color: #333333;
+  color: #ffffff !important;
+  border-left: 4px solid #409EFF;
+}
+.sidebar-menu :deep(.el-sub-menu__title.is-active) {
+  background-color: #2d2d2d;
+  color: #ffffff !important;
+  border-left: 4px solid #409EFF;
+}
+/* 分类标题文字样式 */
+.sidebar-menu :deep(.el-sub-menu__title) span {
+  color: #ffffff !important;
+  font-weight: 700;
+  font-size: 16px;
+}
+/* 检测对象菜单项基础样式 */
+.sidebar-menu :deep(.el-menu-item) {
+  padding: 12px 0 12px 48px;
+  margin: 0;
+  border-radius: 0;
+  transition: all 0.2s ease;
+  background-color: #121212;
+  height: auto;
+  line-height: 20px;
+  color: #b0b0b0 !important;
+  font-size: 14px;
+  border-bottom: 1px solid #202020;
+  border-left: 4px solid transparent;
+}
+/* 检测对象菜单项悬停样式 */
+.sidebar-menu :deep(.el-menu-item:hover) {
+  background-color: #1e1e1e !important;
+  color: #ffffff !important;
+  padding-left: 52px;
+  border-left: 4px solid #66B1FF;
+}
+/* 检测对象基础文字样式 */
+.sidebar-menu :deep(.el-menu-item) span {
+  color: #b0b0b0 !important;
+  font-size: 14px;
+}
+/* 标题容器 */
+.category-title,
+.object-title {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.category-title span {
+  color: #ffffff !important;
+  font-weight: 700;
+  font-size: 16px;
+}
+.object-title span {
+  color: #b0b0b0 !important;
+  font-size: 14px;
+}
+/* 滚动条样式 */
+.sidebar-content::-webkit-scrollbar {
+  width: 8px;
+  display: block;
+}
+.sidebar-content::-webkit-scrollbar-track {
+  background: #333;
+  border-left: 1px solid #444;
+  border-radius: 4px;
+}
+.sidebar-content::-webkit-scrollbar-thumb {
+  background: #666;
+  border-radius: 4px;
+  box-shadow: inset 0 0 2px rgba(0, 0, 0, 0.5);
+  transition: all 0.3s ease;
+}
+.sidebar-content::-webkit-scrollbar-thumb:hover {
+  background: #888;
+  box-shadow: inset 0 0 2px rgba(0, 0, 0, 0.7);
+  transform: scaleX(1.1);
+}
+/* 滚动锚点边距 */
+.sidebar-menu :deep(.el-menu-item.is-active),
+.sidebar-menu :deep(.el-sub-menu__title.is-active) {
+  scroll-margin-top: 10px;
+  scroll-margin-bottom: 10px;
+}
+验证生效的关键要点
+确保父组件传递的selectedObjectId 是正确的数字类型（非字符串 /undefined）；
+确保el-menu-item的:index是 **object-+ 数字 **（如object-1），与activeMenuId的计算结果完全一致；
+若categories为异步加载（如从接口获取），无需额外处理，computed会自动响应数据变化更新激活态；
+样式中background-color: #2c3e50可根据需求调整，只要与基础背景#121212/#1a1a1a有明显视觉差异即可。
+额外优化建议
+给props的selectedObjectId添加类型校验，避免非数字值：
+vue
+selectedObjectId: {
+  type: [Number, null],
+  default: null,
+  validator: (val) => val === null || Number.isInteger(val)
+}
+若需要分类标题也高亮，可给el-sub-menu的:index绑定分类 ID，并在activeMenuId中优先返回分类 ID；
+删除全局样式中的冗余代码.el-menu--collapse-transition { transition: none !important; }，模板中el-menu的:collapse-transition="false"已足够。

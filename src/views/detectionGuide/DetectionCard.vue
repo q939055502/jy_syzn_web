@@ -84,7 +84,7 @@ const handleImageClick = () => {
 
 <style scoped>
 .detection-card {
-  background-color: #ffffff;
+  background-color: #f8f9fa;
   border-radius: 12px;
   box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.08);
   transition: all 0.3s ease;
@@ -101,9 +101,9 @@ const handleImageClick = () => {
 
 .card-content {
   padding: 16px;
-  flex: 1;
   display: flex;
   flex-direction: column;
+  height: 100%;
 }
 
 .project-name {
@@ -120,7 +120,6 @@ const handleImageClick = () => {
 }
 
 .condensed-image-container {
-  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -128,6 +127,7 @@ const handleImageClick = () => {
   border-radius: 8px;
   overflow: hidden;
   position: relative;
+  height: 100px;
 }
 
 .condensed-image-wrapper {

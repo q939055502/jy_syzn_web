@@ -321,9 +321,8 @@
   padding: 8px;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  grid-auto-rows: minmax(120px, auto);
+  grid-template-rows: repeat(auto-fill, minmax(180px, 1fr));
   grid-gap: 8px;
-  grid-auto-flow: dense;
   box-sizing: border-box;
   width: 100%;
   max-width: 100%;
@@ -333,9 +332,9 @@
 /* 平板设备适配 */
 @media (max-width: 1024px) and (min-width: 769px) {
   .item-grid {
-    grid-template-columns: repeat(2, 1fr);
-    grid-row-gap: 5px;
-    grid-column-gap: 5px;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    grid-template-rows: repeat(auto-fill, minmax(140px, 1fr));
+    grid-gap: 5px;
     padding: 12px;
   }
 }
@@ -344,15 +343,15 @@
 @media (max-width: 768px) {
   .item-grid {
     grid-template-columns: 1fr;
-    grid-row-gap: 5px;
-    grid-column-gap: 5px;
+    grid-template-rows: repeat(auto-fill, minmax(160px, 1fr));
+    grid-gap: 5px;
     padding: 12px;
   }
 }
 
 /* 检测项目卡片 */
 .item-card {
-  background-color: white;
+  background-color: #f8f9fa;
   border-radius: 8px;
   box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
   overflow: hidden;
@@ -361,9 +360,8 @@
   border: 2px solid #dcdfe6;
   display: flex;
   flex-direction: column;
-  height: fit-content;
-  min-height: 120px;
-  max-height: 200px;
+  width: 100%;
+  height: 100%;
   margin: 0;
   padding: 0;
 }
@@ -378,6 +376,7 @@
   border-bottom: 1px solid var(--border-color);
   background-color: var(--bg-secondary);
   flex-shrink: 0;
+  height: 50px;
 }
 
 .card-header h4 {
@@ -393,8 +392,6 @@
 
 .card-image {
   flex: 1;
-  min-height: 80px;
-  max-height: none;
   overflow: hidden;
   background-color: white;
   display: flex;
@@ -404,8 +401,14 @@
 
 /* 平板设备卡片调整 */
 @media (max-width: 1024px) and (min-width: 769px) {
+  .item-card {
+    width: 100%;
+    height: 100%;
+  }
+  
   .card-header {
     padding: 8px;
+    height: 40px;
   }
   
   .card-header h4 {
@@ -413,15 +416,20 @@
   }
   
   .card-image {
-    min-height: 80px;
-    max-height: none;
+    flex: 1;
   }
 }
 
 /* 移动设备卡片调整 */
 @media (max-width: 768px) {
+  .item-card {
+    width: 100%;
+    height: 100%;
+  }
+  
   .card-header {
     padding: 10px;
+    height: 50px;
   }
   
   .card-header h4 {
@@ -429,8 +437,7 @@
   }
   
   .card-image {
-    min-height: 80px;
-    max-height: none;
+    flex: 1;
   }
 }
 
@@ -513,8 +520,8 @@
   overflow-y: auto;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  grid-row-gap: 5px;
-  grid-column-gap: 5px;
+  grid-template-rows: repeat(auto-fill, minmax(180px, 1fr));
+  grid-gap: 8px;
   box-sizing: border-box;
   width: 100%;
   max-width: 100%;
@@ -525,9 +532,9 @@
 /* 平板设备适配 */
 @media (max-width: 1024px) and (min-width: 769px) {
   .search-results-grid {
-    grid-template-columns: repeat(2, 1fr);
-    grid-row-gap: 5px;
-    grid-column-gap: 5px;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    grid-template-rows: repeat(auto-fill, minmax(140px, 1fr));
+    grid-gap: 5px;
     padding: 8px;
   }
 }
@@ -536,8 +543,8 @@
 @media (max-width: 768px) {
   .search-results-grid {
     grid-template-columns: 1fr;
-    grid-row-gap: 5px;
-    grid-column-gap: 5px;
+    grid-template-rows: repeat(auto-fill, minmax(160px, 1fr));
+    grid-gap: 5px;
     padding: 8px;
   }
 }

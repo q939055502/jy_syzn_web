@@ -6,7 +6,7 @@
     </div>
     <div class="sidebar-content" ref="sidebarContentRef">
       <el-menu
-        :default-active="activeMenuId"
+        ref="menuRef"
         class="sidebar-menu"
         :unique-opened="true"
         @select="handleMenuSelect"
@@ -17,6 +17,7 @@
         text-color="#ffffff"
         active-text-color="#ffffff"
         :collapse-transition="false"
+        :active-index="activeMenuId"
       >
         <!-- 分类列表 -->
         <el-sub-menu
@@ -42,7 +43,6 @@
             v-for="object in category.objects"
             :key="`object-${object.id}`"
             :index="`object-${object.id}`"
-            :class="{ 'active-item': selectedObjectId === object.id }"
           >
             <div class="object-title">
               <span>{{ object.name }}</span>
@@ -55,7 +55,7 @@
 </template>
 
 <script setup>
-import { computed, ref, nextTick } from 'vue';
+import { computed, ref, nextTick, watch } from 'vue';
 import { Menu, Document, Plus, Minus, Close } from '@element-plus/icons-vue';
 
 // 导入样式文件
@@ -103,12 +103,18 @@ const emit = defineEmits([
 // 仅新增：用于滚动的ref
 const sidebarContentRef = ref(null);
 
+// 菜单组件引用
+const menuRef = ref(null);
+
+// 删除冗余的手动DOM加类逻辑，由el-menu的:active-index自动管理激活态
+
 // 计算当前激活的菜单ID
 const activeMenuId = computed(() => {
-  if (props.selectedObjectId) {
+  console.log('Computing activeMenuId with selectedObjectId:', props.selectedObjectId);
+  if (props.selectedObjectId !== null && props.selectedObjectId !== undefined) {
     return `object-${props.selectedObjectId}`;
   }
-  if (props.selectedCategoryId) {
+  if (props.selectedCategoryId !== null && props.selectedCategoryId !== undefined) {
     return `${props.selectedCategoryId}`;
   }
   return '';
@@ -116,20 +122,25 @@ const activeMenuId = computed(() => {
 
 // 处理菜单选择事件
 const handleMenuSelect = (index) => {
+  console.log('handleMenuSelect called with index:', index);
+  console.log("----------")
   if (index.startsWith('object-')) {
     // 选中的是检测对象
+     console.log(index);
     const objectId = parseInt(index.replace('object-', ''));
+    console.log('Emitting update:selectedObjectId with--:', objectId);
     emit('update:selectedObjectId', objectId);
     
     // 查找并设置对应的分类ID
     let categoryId = null;
     for (const category of props.categories) {
-      const found = category.objects.some(obj => obj.id === objectId);
+      const found = category.objects.some(obj => obj.id == objectId);
       if (found) {
         categoryId = category.id;
         break;
       }
     }
+    console.log('Emitting update:selectedCategoryId with:', categoryId);
     emit('update:selectedCategoryId', categoryId);
   }
 };
