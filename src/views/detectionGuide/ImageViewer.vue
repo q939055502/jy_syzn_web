@@ -26,7 +26,7 @@
               @click="showTemplateList = !showTemplateList"
               class="delegation-download-button"
             >
-              委托单下载
+              下载
             </el-button>
             
             <!-- 委托单模板列表 -->

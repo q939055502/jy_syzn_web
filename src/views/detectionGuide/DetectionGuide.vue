@@ -55,14 +55,10 @@
         <!-- 使用Sidebar组件 -->
         <Sidebar
           :categories="categories"
-          :expanded-categories="expandedCategories"
-          :selected-category-id="selectedCategoryId"
           :selected-object-id="selectedObjectId"
           :is-visible="isSidebarVisible"
-          @update:selected-category-id="selectedCategoryId = $event"
+          :loading="isLoading"
           @update:selected-object-id="handleObjectIdChange($event)"
-          @update:expanded-categories="expandedCategories = $event"
-          @update:categories="categories = $event"
         />
       </div>
       
@@ -181,10 +177,6 @@ const search = useSearch();
 
 // 分类数据
 const categories = computed(() => detectionGuideStore.getCategories);
-// 展开的分类ID列表
-const expandedCategories = ref([]);
-// 当前选中的分类ID
-const selectedCategoryId = ref(null);
 // 当前选中的检测对象ID
 const selectedObjectId = ref(null);
 // 选中的检测对象名称
